@@ -1,7 +1,7 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from pydantic import BaseModel
 from search import get_search_list
-from analyze import get_visible_texts_from_url
+from analyze import analyze_from_url
 
 class NewsItem(BaseModel):
     query: str
@@ -26,5 +26,5 @@ def search_and_analyze(item: NewsItem):
 def news_analyze(url: str = ""):
     if not url:
         return "No url"
-    text = get_visible_texts_from_url(url)
-    return text
+    analyzed = analyze_from_url(url)
+    return analyzed
