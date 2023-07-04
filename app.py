@@ -1,11 +1,15 @@
+import traceback
 from fastapi import FastAPI
 from pydantic import BaseModel
 from search import get_search_list
-from analyze import analyze_from_url
+from analyze import analyze_from_item
+from db import export_db
 
-class NewsItem(BaseModel):
+
+class SearchModel(BaseModel):
     query: str
     source: str | None = None
+
 
 app = FastAPI()
 
@@ -15,16 +19,27 @@ def health_check():
     return {"message": "OK"}
 
 
+# @app.post("/search")
+# def search_news_list(item: SearchItem):
+#     query = item.query
+#     search_list = get_search_list(query)
+#     return search_list
+
+
 @app.post("/analyze")
-def search_and_analyze(item: NewsItem):
-    query = item.query
+def analyze_news_for_query(body: SearchModel):
+    query = body.query
     search_list = get_search_list(query)
-
-    return search_list
-
-@app.get("/analyze")
-def news_analyze(url: str = ""):
-    if not url:
-        return "No url"
-    analyzed = analyze_from_url(url)
-    return analyzed
+    print('get search list')
+    for news_item in search_list:
+        title, url = news_item
+        try:
+            analyzed = analyze_from_item(query, title, url)
+            if analyzed:
+                export_db(analyzed)
+            break
+        except:
+            traceback.print_exc()
+            continue
+    print(analyzed)
+    return "OK?"

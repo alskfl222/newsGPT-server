@@ -1,6 +1,5 @@
 import os
 import requests
-from fastapi import HTTPException
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -20,7 +19,6 @@ def get_search_list(query):
     search_list = []
 
     params = {"q": query, "freshness": "day", "count": 100}
-    print(params)
 
     response = requests.get(BING_SEARCH_API_URL,
                             headers=headers, params=params)
@@ -30,7 +28,6 @@ def get_search_list(query):
 
     data = response.json()
 
-    page_list = [(x["name"], x["url"]) for x in data['value']]
-    search_list = [*search_list, *page_list]
+    search_list = [(x["name"], x["url"]) for x in data['value']]
 
     return search_list
