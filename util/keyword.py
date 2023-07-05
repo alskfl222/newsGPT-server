@@ -1,7 +1,8 @@
 import datetime
 import pymongo
 from typing import List
-from ..db import col_keywords
+from db import col_keywords
+
 
 def set_keywords(keywords: List[str]):
     if not keywords:

@@ -4,8 +4,8 @@ import datetime
 from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup, NavigableString
 import openai
-from ...db import col_analyzed
-from ..log import log_db
+from db import col_analyzed
+from util.log import log_db
 
 openai.organization = "org-cfBhVIGyhj7tr2Fl15iay7Ln"
 openai.api_key = os.getenv("OPENAI_API_KEY")

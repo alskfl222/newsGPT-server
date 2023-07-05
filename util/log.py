@@ -1,5 +1,5 @@
 import datetime
-from ..db import col_log
+from db import col_log
 
 def log_db(fn_name: str, status: str, **kwargs):
     log = {

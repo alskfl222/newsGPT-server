@@ -3,7 +3,7 @@ import requests
 import traceback
 from typing import List, Tuple
 from dotenv import load_dotenv
-from .log import log_db
+from util.log import log_db
 
 load_dotenv()
 

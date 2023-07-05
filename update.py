@@ -1,5 +1,4 @@
 import time
-import tqdm
 from util.search import get_search_list
 from util.news.analyze import analyze_from_item
 from util.news.retrieve import get_url_list
@@ -12,20 +11,34 @@ def update_analyzed_news():
     if not keywords:
         log_db("update_analyzed_news", "FAIL", error="no keywords")
         return
+    print(f"KEYWORDS: {keywords}")
     url_list = get_url_list()
-    for keyword in tqdm.tqdm(keywords):
+    count_dict = {}
+    print(f"{'='*50}")
+    for keyword in keywords:
+        print(f"KEYWORD: {keyword}")
         search_list = get_search_list(keyword)
-        export_count = 0
+        print(f"NEWS LIST LENGTH: {len(search_list)}")
+        count_dict[keyword] = 0
         for item in search_list:
-            url = item[1]
+            title, url, provider = item
+            print(f"NEWS TITLE: {title}")
+            print(f"NEWS PROVIDER: {provider}")
             if url in url_list or "msn.com" in url:
+                print("PASS")
+                print(f"{'-'*50}")
                 continue
             result = analyze_from_item(keyword, item)
             if result:
-                export_count += 1
-            if export_count == 5:
-                print(f"KEYWORD {keyword}: finished")
+                count_dict[keyword] += 1
+                print(f"{'-'*50}")
+            else:
+                print("ERROR")
+                print(f"{'-'*50}")
+            if count_dict[keyword] == 5:
                 break
+        print(f"KEYWORD {keyword}: FINISHED")
+        print(f"{'='*50}")
         time.sleep(1)
 
 
