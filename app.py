@@ -1,13 +1,13 @@
-import traceback
+from datetime import date
+from typing import Optional
 from fastapi import FastAPI
 from pydantic import BaseModel
-from search import get_search_list
-from analyze import analyze_from_item
-from db import export_db
+
+from util.news.retrieve import get_query, get_analyzed_list
 
 
 class SearchModel(BaseModel):
-    query: str
+    keyword: str
     source: str | None = None
 
 
@@ -21,25 +21,14 @@ def health_check():
 
 # @app.post("/search")
 # def search_news_list(item: SearchItem):
-#     query = item.query
-#     search_list = get_search_list(query)
+#     keyword = item.keyword
+#     search_list = get_search_list(keyword)
 #     return search_list
 
 
-@app.post("/analyze")
-def analyze_news_for_query(body: SearchModel):
-    query = body.query
-    search_list = get_search_list(query)
-    print('get search list')
-    for news_item in search_list:
-        title, url = news_item
-        try:
-            analyzed = analyze_from_item(query, title, url)
-            if analyzed:
-                export_db(analyzed)
-            break
-        except:
-            traceback.print_exc()
-            continue
-    print(analyzed)
-    return "OK?"
+@app.get("/news")
+def get_news_list(start: Optional[date] = None, end: Optional[date] = None, keyword: Optional[str] = None, related: Optional[str] = None):
+    query = get_query(start=start, end=end, keyword=keyword, related=related)
+    print(query)
+    analyzed_list = get_analyzed_list(query)
+    return analyzed_list
