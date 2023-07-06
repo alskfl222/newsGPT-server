@@ -1,6 +1,7 @@
 import traceback
 import os
 import datetime
+from dateutil.parser import parse
 from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup, NavigableString
 import openai
@@ -47,6 +48,7 @@ def request_analyze(search_keyword: str, sliced_text: str):
         위 뉴스를 분석하고 결과를 다음 형식에 맞게 보여줘.
         검색어: {search_keyword}
         주제:
+        작성시간: ISO 형식에 맞게
         긍정/부정: 검색어에 대해 긍정적인지 부정적인지
         키워드: 5개 까지만
     """
@@ -65,6 +67,14 @@ def request_analyze(search_keyword: str, sliced_text: str):
                 if string.split(':')[-1].strip() else ''
             if string.startswith('주제:'):
                 analyzed['subject'] = content
+            if string.startswith('작성시간:'):
+                try:
+                    uploaded_time = parse(content)
+                    if analyzed['time'] < uploaded_time:
+                        raise
+                    analyzed['uploaded'] = parse(content)
+                except:
+                    analyzed['uploaded'] = parse("0001-01-01")
             if string.startswith('긍정/부정:'):
                 analyzed['P/N'] = determine_sentiment(content)
             if string.startswith('키워드:'):
