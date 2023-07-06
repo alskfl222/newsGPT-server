@@ -1,8 +1,8 @@
 import time
-from util.search import get_search_list
-from util.news.analyze import analyze_from_item
-from util.news.retrieve import get_url_list
-from util.keyword import get_keywords_latest
+from news.search import get_search_list
+from news.analyze import analyze_from_item
+from news.retrieve import get_url_list
+from news.keyword import get_keywords_latest
 from util.log import log_db, log_result
 
 
