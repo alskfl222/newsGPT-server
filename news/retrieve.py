@@ -21,7 +21,7 @@ def get_query(**kwargs):
 
     if kwargs['end']:
         end = datetime.combine(kwargs['end'], datetime.max.time())
-        query["time"] = {**query.get("time", {}), "$lt": end}
+        query["time"] = {**query.get("time", {}), "$lte": end}
 
     if kwargs['keyword']:
         query["keyword"] = {
