@@ -13,7 +13,7 @@ db = db_client.newsGPT
 col_log = db.log
 col_keywords = db.keywords
 col_analyzed = db.analyzed
-col_result = db.result
+col_count = db.count
 
 
 

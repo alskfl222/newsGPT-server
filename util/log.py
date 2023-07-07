@@ -1,5 +1,5 @@
 import datetime
-from db import col_log, col_result
+from db import col_log, col_count
 
 
 def printhl(*values, line='='):
@@ -17,7 +17,7 @@ def log_db(fn_name: str, status: str, **kwargs):
     col_log.insert_one(log)
 
 
-def log_result(result):
-    doc = {**result, "time": datetime.datetime.now()}
-    col_result.insert_one(doc)
-    log_db("log_result", "SUCCESS")
+def log_count(count):
+    doc = {**count, "time": datetime.datetime.now()}
+    col_count.insert_one(doc)
+    log_db("log_count", "SUCCESS")

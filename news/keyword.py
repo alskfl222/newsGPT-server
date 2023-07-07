@@ -58,7 +58,7 @@ def get_keywords_latest():
         sort=[("time", pymongo.DESCENDING)]
     ).limit(1)
     for doc in docs:
-        keywords = doc['keywords']
+        keywords: List[str] = doc['keywords']
         return keywords
 
 
