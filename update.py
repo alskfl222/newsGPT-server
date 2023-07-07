@@ -45,11 +45,10 @@ def update_analyzed_news(model=''):
             else:
                 printhl("ERROR", line="-")
             # break
-            if count_dict[keyword]['analyzed'] == 1:
+            if count_dict[keyword]['analyzed'] == 10:
                 break
         printhl(f"KEYWORD {keyword}: FINISHED")
         time.sleep(1)
-        break
     print(f"NEWS ANALYZE COUNT: {count_dict}")
     log_count(count_dict)
     printhl("LOG COMPLETE")

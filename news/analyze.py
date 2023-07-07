@@ -49,7 +49,14 @@ def determine_sentiment(sentiment_string: str):
     return 'E'
 
 
-def process_analyzed(status: str, topic: str, sentiment: str, related: str, upload_time="0001-01-01"):
+def process_analyzed(
+        status: str, 
+        topic: str, 
+        overall_sentiment: str, 
+        keyword_sentiment: str, 
+        related: str, 
+        upload_time="0001-01-01"
+    ):
     """To processing news analyzed result"""
     now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
     upload_datetime = parse(upload_time) if parse(
@@ -58,7 +65,8 @@ def process_analyzed(status: str, topic: str, sentiment: str, related: str, uplo
         "status": True if status == "Success" else False,
         "topic": topic,
         "upload_time": upload_datetime.isoformat(),
-        "P/N": sentiment,
+        "overall_sentiment": overall_sentiment,
+        "keyword_sentiment": keyword_sentiment,
         "related": [x.strip() for x in related.split(',')]
     }
     return json.dumps(processed)
@@ -86,7 +94,8 @@ def request_analyze(model: str, search_keyword: str, sliced_text: str):
         - Search keyword: {search_keyword}
         - Topic: Translate to Korean
         - Upload time: In ISO format
-        - Sentiment: Whether it is Positive or Negative about the search keyword, If it is hard to judge, it can be Equal
+        - Overall sentiment: The overall tone or sentiment carried by the news piece
+        - Keyword sentiment: Whether it is Positive or Negative about the search keyword, If it is hard to judge, it can be Equal
         - Keywords: Up to 5 only, in Korean, separated by commas
     """
     functions = [
@@ -109,7 +118,12 @@ def request_analyze(model: str, search_keyword: str, sliced_text: str):
                         "type": "string",
                         "description": "Upload time of the news on the webpage, formatted in ISO"
                     },
-                    "sentiment": {
+                    "overall_sentiment": {
+                        "type": "string",
+                        "description": "The overall tone or sentiment carried by the news piece",
+                        "enum": ["Positive", "Negative", "Equal"]
+                    },
+                    "keyword_sentiment": {
                         "type": "string",
                         "description": "Whether this news is positive, negative, or neutral towards the search keyword",
                         "enum": ["Positive", "Negative", "Equal"]
@@ -119,7 +133,7 @@ def request_analyze(model: str, search_keyword: str, sliced_text: str):
                         "description": "Associated keywords analyzed from the news, up to 5, separated by commas, in Korean"
                     }
                 },
-                "required": ["status", "topic", "upload_time", "sentiment", "related"],
+                "required": ["status", "topic", "upload_time", "overall_sentiment", "keyword_sentiment", "related"],
             },
         }
     ]
@@ -144,7 +158,8 @@ def request_analyze(model: str, search_keyword: str, sliced_text: str):
             function_response = function_to_call(
                 status=function_args.get("status"),
                 topic=function_args.get("topic"),
-                sentiment=function_args.get("sentiment"),
+                overall_sentiment=function_args.get("overall_sentiment"),
+                keyword_sentiment=function_args.get("keyword_sentiment"),
                 related=function_args.get("related"),
                 upload_time=function_args.get("upload_time")
             )
@@ -152,8 +167,8 @@ def request_analyze(model: str, search_keyword: str, sliced_text: str):
             print(f"TOTAL TOKENS: {tokens}")
             result = {
                 **analyzed,
+                **json.loads(function_response),
                 "tokens": tokens,
-                **json.loads(function_response)
             }
             return result
         else:
@@ -231,6 +246,7 @@ def analyze_from_item(model: str, keyword: str, item: tuple[str]) -> tuple[bool,
             if 'status' in analyzed and analyzed['status']:
                 # if 'status' in analyzed:
                 log_db("analyze_from_item", "SUCCESS")
+                del analyzed['status']
                 col_analyzed.insert_one(analyzed)
                 return True, analyzed['tokens']
             else:
