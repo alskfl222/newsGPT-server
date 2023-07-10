@@ -39,14 +39,13 @@ def get_query(**kwargs):
 def get_analyzed_list(page, query):
     docs_analyzed = col_analyzed.find(
         query,
-        {"_id": 0},
         sort=[("time", pymongo.DESCENDING)]
     ).skip(page - 1).limit(10)
-    return list(docs_analyzed)
+    return [{**x, '_id': str(x['_id'])} for x in docs_analyzed]
 
 
 def get_latest_news_by_keyword():
-    today = datetime.now()
+    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     yesterday = today - timedelta(days=1)
 
     pipeline = [
@@ -59,12 +58,15 @@ def get_latest_news_by_keyword():
         # 키워드 별로 그룹화하고 각 그룹의 처음 3개 문서를 수집
         {"$group": {"_id": "$keyword", "docs": {"$push": "$$ROOT"}}},
         # 각 document에서 "_id" 필드 제외
-        {"$project": {"docs": {"_id": 0}}},
+        # {"$project": {"docs": {"_id": 0}}},
         {"$project": {"_id": 1, "docs": {"$slice": ["$docs", 3]}}}
     ]
 
     result = col_analyzed.aggregate(pipeline)
 
     # 결과를 딕셔너리 형태로 변환
-    latest_docs_by_keyword = {item['_id']: item['docs'] for item in result}
+    latest_docs_by_keyword = {
+        item['_id']: [{**doc, '_id': str(doc['_id'])} for doc in item['docs']]
+        for item in result
+    }
     return latest_docs_by_keyword

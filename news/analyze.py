@@ -28,7 +28,6 @@ def extract_visible_text(soup: BeautifulSoup):
         return ""
 
     return " ".join(extract_visible_text(child) for child in soup.children)
-    # return itertools.chain(*[extract_visible_text(child) for child in soup.children])
 
 
 def remove_multiple_spaces(raw_text: str):
@@ -50,13 +49,13 @@ def determine_sentiment(sentiment_string: str):
 
 
 def process_analyzed(
-        status: str, 
-        topic: str, 
-        overall_sentiment: str, 
-        keyword_sentiment: str, 
-        related: str, 
-        upload_time="0001-01-01"
-    ):
+    status: str,
+    topic: str,
+    overall_sentiment: str,
+    keyword_sentiment: str,
+    related: str,
+    upload_time="0001-01-01"
+):
     """To processing news analyzed result"""
     now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
     upload_datetime = parse(upload_time) if parse(
@@ -65,28 +64,16 @@ def process_analyzed(
         "status": True if status == "Success" else False,
         "topic": topic,
         "upload_time": upload_datetime.isoformat(),
-        "overall_sentiment": overall_sentiment,
-        "keyword_sentiment": keyword_sentiment,
+        "sentiment": {
+            "overall": overall_sentiment,
+            "keyword": keyword_sentiment,
+        },
         "related": [x.strip() for x in related.split(',')]
     }
     return json.dumps(processed)
 
 
 def request_analyze(model: str, search_keyword: str, sliced_text: str):
-    analyzed = {
-        "keyword": search_keyword,
-        "time": datetime.datetime.now(),
-    }
-    # request_analyze_string = f"""
-
-    #     위 뉴스를 분석하고 결과를 다음 형식에 맞게 보여줘.
-    #     상태: 분석했으면 성공, 아니면 실패
-    #     검색어: {search_keyword}
-    #     주제:
-    #     작성시간: ISO 형식에 맞게
-    #     긍정/부정: 검색어에 대해 긍정적인지 부정적인지
-    #     키워드: 5개 까지만
-    # """
     request_analyze_string = f"""
     
         Please analyze the news and display the results in the following format:
@@ -154,7 +141,8 @@ def request_analyze(model: str, search_keyword: str, sliced_text: str):
         if response_message.get("function_call"):
             function_name = response_message["function_call"]["name"]
             function_to_call = available_functions[function_name]
-            function_args = json.loads(response_message["function_call"]["arguments"])
+            function_args = json.loads(
+                response_message["function_call"]["arguments"])
             function_response_raw = function_to_call(
                 status=function_args.get("status"),
                 topic=function_args.get("topic"),
@@ -165,57 +153,19 @@ def request_analyze(model: str, search_keyword: str, sliced_text: str):
             )
             tokens: int = response['usage']['total_tokens']
             print(f"TOTAL TOKENS: {tokens}")
-            function_response = { 
-                **json.loads(function_response_raw),
-            }
-            function_response['sentiment'] = {
-                "overall": function_response["overall_sentiment"],
-                "keyword": function_response["keyword_sentiment"]
-            }
-            del function_response["overall_sentiment"]
-            del function_response["keyword_sentiment"]
+
             result = {
-                **analyzed,
-                **function_response,
+                **json.loads(function_response_raw),
                 "tokens": tokens,
             }
             return result
         else:
             print("FUNCTION CANNOT BE CALLED")
-            return analyzed
-
-        # raw: str = response['choices'][0]['message']['content']
-        # splited = raw.split("\n")
-
-        # for string in splited:
-        #     print(string)
-        #     content = string.split(':')[-1].strip() \
-        #         if string.split(':')[-1].strip() else ''
-        #     if string.startswith('상태:'):
-        #         if '성공' in content:
-        #             analyzed['status'] = True
-        #         else:
-        #             analyzed['status'] = False
-        #     if string.startswith('주제:'):
-        #         analyzed['topic'] = content
-        #     if string.startswith('작성시간:'):
-        #         try:
-        #             uploaded_time = parse(content)
-        #             if analyzed['time'] < uploaded_time:
-        #                 raise
-        #             analyzed['upload_time'] = parse(content)
-        #         except:
-        #             analyzed['upload_time'] = parse("0001-01-01")
-        #     if string.startswith('긍정/부정:'):
-        #         analyzed['P/N'] = determine_sentiment(content)
-        #     if string.startswith('키워드:'):
-        #         analyzed['related'] = [x.strip() for x in content.split(',')]
+            return {}
 
     except:
         traceback.print_exc()
         error_result = {
-            "keyword": search_keyword,
-            "time": datetime.datetime.now(),
             "related": []
         }
         try:
@@ -245,9 +195,15 @@ def analyze_from_item(model: str, keyword: str, item: tuple[str]) -> tuple[bool,
 
             sliced_text = slice_text(spaces_removed, news_start, news_length)
             analyzed = {
+                'keyword': keyword,
                 'title': title,
                 'url': url,
                 'provider': provider,
+                'time': datetime.datetime.now(),
+                'vote': {
+                    'true': 0,
+                    'false': 0,
+                },
                 **request_analyze(model, keyword, sliced_text)
             }
 

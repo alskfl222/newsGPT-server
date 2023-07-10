@@ -45,7 +45,7 @@ def update_analyzed_news(model=''):
             else:
                 printhl("ERROR", line="-")
             # break
-            if count_dict[keyword]['analyzed'] == 10:
+            if count_dict[keyword]['analyzed'] == 5:
                 break
         printhl(f"KEYWORD {keyword}: FINISHED")
         time.sleep(1)
@@ -56,7 +56,7 @@ def update_analyzed_news(model=''):
 
 if __name__ == "__main__":
     print("UPDATE START")
-    model_list = get_model_list()
+    model_list = [model for model in get_model_list() if 'gpt' in model]
     print("AVAILABLE MODEL LIST")
     printhl(model_list)
     model = ''
