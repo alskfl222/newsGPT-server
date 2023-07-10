@@ -3,7 +3,7 @@ from typing import Optional
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-from news.retrieve import get_query, get_analyzed_list, get_latest_news_by_keyword
+from news.retrieve import *
 
 
 class SearchModel(BaseModel):

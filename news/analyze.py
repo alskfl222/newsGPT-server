@@ -92,7 +92,7 @@ def request_analyze(model: str, search_keyword: str, sliced_text: str):
         Please analyze the news and display the results in the following format:
         - Status: Success if analyzed, Failure otherwise
         - Search keyword: {search_keyword}
-        - Topic: Translate to Korean
+        - Topic: Translate into Korean
         - Upload time: In ISO format
         - Overall sentiment: The overall tone or sentiment carried by the news piece
         - Keyword sentiment: Whether it is Positive or Negative about the search keyword, If it is hard to judge, it can be Equal
@@ -144,7 +144,8 @@ def request_analyze(model: str, search_keyword: str, sliced_text: str):
         response = openai.ChatCompletion.create(
             model=model,
             messages=[
-                {"role": "user", "content": sliced_text + request_analyze_string}],
+                {"role": "user", "content": sliced_text + request_analyze_string}
+            ],
             functions=functions,
             function_call="auto"
         )
@@ -153,9 +154,8 @@ def request_analyze(model: str, search_keyword: str, sliced_text: str):
         if response_message.get("function_call"):
             function_name = response_message["function_call"]["name"]
             function_to_call = available_functions[function_name]
-            function_args = json.loads(
-                response_message["function_call"]["arguments"])
-            function_response = function_to_call(
+            function_args = json.loads(response_message["function_call"]["arguments"])
+            function_response_raw = function_to_call(
                 status=function_args.get("status"),
                 topic=function_args.get("topic"),
                 overall_sentiment=function_args.get("overall_sentiment"),
@@ -165,9 +165,18 @@ def request_analyze(model: str, search_keyword: str, sliced_text: str):
             )
             tokens: int = response['usage']['total_tokens']
             print(f"TOTAL TOKENS: {tokens}")
+            function_response = { 
+                **json.loads(function_response_raw),
+            }
+            function_response['sentiment'] = {
+                "overall": function_response["overall_sentiment"],
+                "keyword": function_response["keyword_sentiment"]
+            }
+            del function_response["overall_sentiment"]
+            del function_response["keyword_sentiment"]
             result = {
                 **analyzed,
-                **json.loads(function_response),
+                **function_response,
                 "tokens": tokens,
             }
             return result

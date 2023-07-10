@@ -57,6 +57,8 @@ def update_analyzed_news(model=''):
 if __name__ == "__main__":
     print("UPDATE START")
     model_list = get_model_list()
+    print("AVAILABLE MODEL LIST")
+    printhl(model_list)
     model = ''
     if 'gpt-4-8k' in model_list:
         model = 'gpt-4-8k'
