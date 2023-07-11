@@ -58,3 +58,9 @@ def get_news_list(
                       keyword=keyword, related=related)
     analyzed_list = get_analyzed_list(page, query)
     return analyzed_list
+
+
+@app.get("/news/{news_id}")
+def get_news(news_id: str):
+    news = get_news_by_id(news_id)
+    return news

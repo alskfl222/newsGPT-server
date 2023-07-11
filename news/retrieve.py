@@ -2,6 +2,7 @@ import re
 from datetime import datetime, timedelta
 import pymongo
 from bson.son import SON
+from bson.objectid import ObjectId
 from db import col_analyzed
 
 
@@ -70,3 +71,10 @@ def get_latest_news_by_keyword():
         for item in result
     }
     return latest_docs_by_keyword
+
+
+def get_news_by_id(id: str):
+    object_id = ObjectId(id)
+    news = col_analyzed.find_one({'_id': object_id})
+    news['_id'] = str(news['_id'])
+    return news

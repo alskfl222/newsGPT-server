@@ -2,9 +2,10 @@ import traceback
 import os
 import json
 import datetime
-import pytz
+import requests
 from dateutil.parser import parse
-from playwright.sync_api import sync_playwright
+from dateutil.tz import tzutc, tzlocal
+# from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup, NavigableString
 import openai
 from db import col_analyzed
@@ -40,6 +41,22 @@ def slice_text(raw_text: str, news_start: int, news_length: int):
     return sliced
 
 
+def determine_upload_time(upload_time: str):
+    now = datetime.datetime.now(tzutc())
+    try:
+        parsed_upload_time = parse(upload_time)
+        if parsed_upload_time.tzinfo:
+            if parsed_upload_time < now:
+                return parsed_upload_time
+        else:
+            added_tzinfo = parsed_upload_time.replace(tzinfo=tzlocal())
+            if added_tzinfo < now:
+                return added_tzinfo.astimezone(tzutc())
+    except:
+        pass
+    return parse('0001-01-01T00:00:00Z')
+
+
 def determine_sentiment(sentiment_string: str):
     if '긍정' in sentiment_string:
         return 'P'
@@ -57,9 +74,7 @@ def process_analyzed(
     upload_time="0001-01-01"
 ):
     """To processing news analyzed result"""
-    now = datetime.datetime.now(pytz.timezone('Asia/Seoul'))
-    upload_datetime = parse(upload_time) if parse(
-        upload_time) < now else parse("0001-01-01")
+    upload_datetime = determine_upload_time(upload_time)
     processed = {
         "status": True if status == "Success" else False,
         "topic": topic,
@@ -73,18 +88,7 @@ def process_analyzed(
     return json.dumps(processed)
 
 
-def request_analyze(model: str, search_keyword: str, sliced_text: str):
-    request_analyze_string = f"""
-    
-        Please analyze the news and display the results in the following format:
-        - Status: Success if analyzed, Failure otherwise
-        - Search keyword: {search_keyword}
-        - Topic: Translate into Korean
-        - Upload time: In ISO format
-        - Overall sentiment: The overall tone or sentiment carried by the news piece
-        - Keyword sentiment: Whether it is Positive or Negative about the search keyword, If it is hard to judge, it can be Equal
-        - Keywords: Up to 5 only, in Korean, separated by commas
-    """
+def request_analyze(model: str, sliced_text: str):
     functions = [
         {
             "name": "process_analyzed",
@@ -131,7 +135,7 @@ def request_analyze(model: str, search_keyword: str, sliced_text: str):
         response = openai.ChatCompletion.create(
             model=model,
             messages=[
-                {"role": "user", "content": sliced_text + request_analyze_string}
+                {"role": "user", "content": sliced_text}
             ],
             functions=functions,
             function_call="auto"
@@ -177,50 +181,53 @@ def request_analyze(model: str, search_keyword: str, sliced_text: str):
 def analyze_from_item(model: str, keyword: str, item: tuple[str]) -> tuple[bool, int]:
     title, url, provider = item
     try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch()
-            page = browser.new_page()
+        # with sync_playwright() as p:
+        #     browser = p.chromium.launch()
+        #     page = browser.new_page()
 
-            page.goto(url, timeout=10000)
+        #     page.goto(url, timeout=10000)
 
-            soup = BeautifulSoup(page.content(), 'lxml')
+        #     soup = BeautifulSoup(page.content(), 'lxml')
 
-            browser.close()
+        #     browser.close()
 
-            extracted = extract_visible_text(soup)
-            spaces_removed = remove_multiple_spaces(extracted)
+        response = requests.get(url)
+        soup = BeautifulSoup(response.content, 'lxml')
 
-            news_start = spaces_removed.find(title)
-            news_length = 4000
+        extracted = extract_visible_text(soup)
+        spaces_removed = remove_multiple_spaces(extracted)
 
-            sliced_text = slice_text(spaces_removed, news_start, news_length)
-            analyzed = {
-                'keyword': keyword,
-                'title': title,
-                'url': url,
-                'provider': provider,
-                'time': datetime.datetime.now(),
-                'vote': {
-                    'true': 0,
-                    'false': 0,
-                },
-                **request_analyze(model, keyword, sliced_text)
-            }
+        news_start = spaces_removed.find(title)
+        news_length = 4000
 
-            # ! 분석 결과 판별 조건
-            if 'status' in analyzed and analyzed['status']:
-                # if 'status' in analyzed:
-                log_db("analyze_from_item", "SUCCESS")
-                del analyzed['status']
-                col_analyzed.insert_one(analyzed)
-                return True, analyzed['tokens']
-            else:
-                log_db("analyze_from_item", "FAIL",
-                       message="GPT analyze fail", analyzed=analyzed)
-                try:
-                    return False, analyzed['tokens']
-                except:
-                    return False, 0
+        sliced_text = slice_text(spaces_removed, news_start, news_length)
+        analyzed = {
+            'keyword': keyword,
+            'title': title,
+            'url': url,
+            'provider': provider,
+            'time': datetime.datetime.now(),
+            'vote': {
+                'true': 0,
+                'false': 0,
+            },
+            **request_analyze(model, sliced_text)
+        }
+
+        # ! 분석 결과 판별 조건
+        if 'status' in analyzed and analyzed['status']:
+            # if 'status' in analyzed:
+            log_db("analyze_from_item", "SUCCESS")
+            del analyzed['status']
+            col_analyzed.insert_one(analyzed)
+            return True, analyzed['tokens']
+        else:
+            log_db("analyze_from_item", "FAIL",
+                   message="GPT analyze fail", analyzed=analyzed)
+            try:
+                return False, analyzed['tokens']
+            except:
+                return False, 0
     except:
         error_message = traceback.format_exc()
         log_db("analyze_from_item", "ERROR", error=error_message)
