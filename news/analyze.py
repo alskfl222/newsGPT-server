@@ -169,13 +169,10 @@ def request_analyze(model: str, sliced_text: str):
 
     except:
         traceback.print_exc()
-        error_result = {
-            "related": []
-        }
         try:
-            return {**error_result, "tokens": tokens}
+            return {"tokens": tokens}
         except:
-            return {**error_result, "tokens": 0}
+            return {"tokens": 0}
 
 
 def analyze_from_item(model: str, keyword: str, item: tuple[str]) -> tuple[bool, int]:
