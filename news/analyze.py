@@ -57,17 +57,10 @@ def determine_upload_time(upload_time: str):
     return parse('0001-01-01T00:00:00Z')
 
 
-def determine_sentiment(sentiment_string: str):
-    if '긍정' in sentiment_string:
-        return 'P'
-    if '부정' in sentiment_string:
-        return 'N'
-    return 'E'
-
-
 def process_analyzed(
     status: str,
-    topic: str,
+    subject: str,
+    summary: str,
     overall_sentiment: str,
     keyword_sentiment: str,
     related: str,
@@ -77,8 +70,9 @@ def process_analyzed(
     upload_datetime = determine_upload_time(upload_time)
     processed = {
         "status": True if status == "Success" else False,
-        "topic": topic,
         "upload_time": upload_datetime.isoformat(),
+        "subject": subject,
+        "summary": summary,
         "sentiment": {
             "overall": overall_sentiment,
             "keyword": keyword_sentiment,
@@ -101,9 +95,13 @@ def request_analyze(model: str, sliced_text: str):
                         "description": "Analyzing status, Success if analyzed, Failure otherwise",
                         "enum": ["Success", "Failure"]
                     },
-                    "topic": {
+                    "subject": {
                         "type": "string",
-                        "description": "topic of the analyzed news in Korean"
+                        "description": "subject of the analyzed news in Korean"
+                    },
+                    "summary": {
+                        "type": "string",
+                        "description": "Korean summary of the analyzed news. about three sentences in length."
                     },
                     "upload_time": {
                         "type": "string",
@@ -149,7 +147,8 @@ def request_analyze(model: str, sliced_text: str):
                 response_message["function_call"]["arguments"])
             function_response_raw = function_to_call(
                 status=function_args.get("status"),
-                topic=function_args.get("topic"),
+                subject=function_args.get("subject"),
+                summary=function_args.get("summary"),
                 overall_sentiment=function_args.get("overall_sentiment"),
                 keyword_sentiment=function_args.get("keyword_sentiment"),
                 related=function_args.get("related"),
@@ -199,6 +198,7 @@ def analyze_from_item(model: str, keyword: str, item: tuple[str]) -> tuple[bool,
 
         sliced_text = slice_text(spaces_removed, news_start, news_length)
         analyzed = {
+            'model': model,
             'keyword': keyword,
             'title': title,
             'url': url,

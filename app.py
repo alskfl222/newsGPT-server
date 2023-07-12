@@ -1,6 +1,6 @@
 from datetime import date
 from typing import Optional, List
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -63,4 +63,6 @@ def get_news_list(
 @app.get("/news/{news_id}")
 def get_news(news_id: str):
     news = get_news_by_id(news_id)
+    if not news:
+        raise HTTPException(404, "News not found")
     return news

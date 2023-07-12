@@ -74,7 +74,13 @@ def get_latest_news_by_keyword():
 
 
 def get_news_by_id(id: str):
-    object_id = ObjectId(id)
+    try:
+        object_id = ObjectId(id)
+    except:
+        return None
     news = col_analyzed.find_one({'_id': object_id})
-    news['_id'] = str(news['_id'])
-    return news
+    if news:
+        news['_id'] = str(news['_id'])
+        return news
+    else:
+        return None
