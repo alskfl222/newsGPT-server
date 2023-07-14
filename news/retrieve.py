@@ -3,8 +3,16 @@ from datetime import datetime, timedelta
 import pymongo
 from bson.son import SON
 from bson.objectid import ObjectId
-from db import col_analyzed
+from db import col_keywords, col_analyzed
 
+
+def get_keywords():
+    docs_keywords = col_keywords.find(
+        {},
+        {"_id": 0},
+        sort=[("time", pymongo.DESCENDING)]
+    ).limit(1)
+    return docs_keywords.next()
 
 def get_url_list():
     docs_analyzed = col_analyzed.find(
@@ -63,14 +71,24 @@ def get_latest_news_by_keyword():
         {"$project": {"_id": 1, "docs": {"$slice": ["$docs", 3]}}}
     ]
 
-    result = col_analyzed.aggregate(pipeline)
-
-    # 결과를 딕셔너리 형태로 변환
+    response = col_analyzed.aggregate(pipeline)
+    
+    # 결과를 딕셔너리 형태로 변환, _id는 문자열로 변환
     latest_docs_by_keyword = {
         item['_id']: [{**doc, '_id': str(doc['_id'])} for doc in item['docs']]
-        for item in result
+        for item in response
     }
-    return latest_docs_by_keyword
+    doc_keywords = get_keywords()
+    latest_keywords = doc_keywords['keywords']
+    remain_keywords = set(latest_docs_by_keyword.keys()) - set(latest_keywords)
+    remain_keywords_sorted = sorted(remain_keywords, key=lambda x: x.lower())
+
+    # 키워드별 결과 정렬
+    result = {}
+    for keyword in latest_keywords + remain_keywords_sorted:
+        result[keyword] = latest_docs_by_keyword[keyword]
+
+    return result
 
 
 def get_news_by_id(id: str):

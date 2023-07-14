@@ -23,9 +23,9 @@ app.add_middleware(
 )
 
 
-@app.get("/")
-def health_check():
-    return {"message": "OK"}
+@app.get("/keywords")
+def get_latest_keywords():
+    return get_keywords()
 
 
 @app.put("/keywords")
