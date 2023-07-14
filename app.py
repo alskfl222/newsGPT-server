@@ -6,10 +6,14 @@ from pydantic import BaseModel
 
 from news.keyword import *
 from news.retrieve import *
+from news.vote import *
 
 
 class KeywordsModel(BaseModel):
     keywords: List[str]
+
+class VoteModel(BaseModel):
+    vote: int
 
 app = FastAPI()
 
@@ -66,3 +70,12 @@ def get_news(news_id: str):
     if not news:
         raise HTTPException(404, "News not found")
     return news
+
+
+@app.put("/news/{news_id}")
+def vote_news(news_id: str, body: VoteModel):
+    news = get_news_by_id(news_id)
+    if not news:
+        raise HTTPException(404, "News not found")
+    updated = update_vote(news_id, body.vote)
+    return updated
